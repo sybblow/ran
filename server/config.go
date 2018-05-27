@@ -45,8 +45,6 @@ type Config struct {
                                 // nil means do not use 401 file.
     IndexName   Index           // File name of index, priority depends on the order of values.
                                 // Default is []string{"index.html", "index.htm"}.
-    ListDir     bool            // If no index file provide, show file list of the directory.
-                                // Default is false.
     Gzip        bool            // If turn on gzip compression, default is true.
     Auth        *Auth           // If not nil, turn on authentication.
     ServeAll    bool            // If is false, path start with dot will not be served, that means a 404 error will be returned.

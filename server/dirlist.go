@@ -10,21 +10,32 @@ import "html"
 import "path"
 import "path/filepath"
 import "strings"
-
+import "sort"
 
 type dirListFiles struct {
-    Name        string
-    Url         string
-    Size        int64
-    ModTime     time.Time
+	Name    string
+	Url     string
+	Size    int64
+	ModTime time.Time
 }
 
+type dirListFilesArray []dirListFiles
+
+// Len implements the sort interface
+func (a dirListFilesArray) Len() int { return len(a) }
+
+// Swap implements the sort interface
+func (a dirListFilesArray) Swap(left, right int) { a[left], a[right] = a[right], a[left] }
+
+// Less implements the sort interface
+func (a dirListFilesArray) Less(left, right int) bool {
+	return strings.ToLower(a[left].Name) < strings.ToLower(a[right].Name)
+}
 
 type dirList struct {
-    Title string
-    Files []dirListFiles
+	Title string
+	Files []dirListFiles
 }
-
 
 const dirListTpl = `<!DOCTYPE HTML>
 <html>
@@ -87,106 +98,103 @@ table tr > td:nth-child(2), table tr > td:nth-child(3) {
 </body>
 </html>`
 
-
 var tplDirList *template.Template
 
-
 func timeToString(t time.Time, format ...string) string {
-    f := "2006-01-02 15:04:05"
-    if len(format) > 0 && format[0] != "" {
-        f = format[0]
-    }
-    return t.Format(f)
+	f := "2006-01-02 15:04:05"
+	if len(format) > 0 && format[0] != "" {
+		f = format[0]
+	}
+	return t.Format(f)
 }
-
 
 func init() {
-    var err error
-    tplDirList = template.New("dirlist").Funcs(template.FuncMap{"t2s": timeToString})
-    tplDirList, err = tplDirList.Parse(dirListTpl)
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "Directory list template init error: %s", err.Error())
-        os.Exit(1)
-    }
+	var err error
+	tplDirList = template.New("dirlist").Funcs(template.FuncMap{"t2s": timeToString})
+	tplDirList, err = tplDirList.Parse(dirListTpl)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Directory list template init error: %s", err.Error())
+		os.Exit(1)
+	}
 }
-
 
 // List content of a directory.
 // If error occurs, this function will return an error and won't write anything to ResponseWriter.
 func (this *RanServer) listDir(w http.ResponseWriter, serveAll bool, c *context) (size int64, err error) {
 
-    if !c.exist {
-        size = Error(w, 404)
-        return
-    }
+	if !c.exist {
+		size = Error(w, 404)
+		return
+	}
 
-    if !c.isDir {
-        err = fmt.Errorf("Cannot list contents of a non-directory")
-        return
-    }
+	if !c.isDir {
+		err = fmt.Errorf("Cannot list contents of a non-directory")
+		return
+	}
 
-    f, err := os.Open(c.absFilePath)
-    if err != nil {
-        return
-    }
-    defer f.Close()
+	f, err := os.Open(c.absFilePath)
+	if err != nil {
+		return
+	}
+	defer f.Close()
 
-    info, err := f.Readdir(0)
-    if err != nil {
-        return
-    }
+	info, err := f.Readdir(0)
+	if err != nil {
+		return
+	}
 
-    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-    title := html.EscapeString(path.Base(c.cleanPath))
+	title := html.EscapeString(path.Base(c.cleanPath))
 
-    var files []dirListFiles
+	var files, dirfiles []dirListFiles
+	for _, i := range info {
+		name := i.Name()
 
-    for n, i := range info {
-        name := i.Name()
-        if i.IsDir() {
-            name += "/"
-        }
-        name = html.EscapeString(name)
+		// skip hidden path
+		if !serveAll && strings.HasPrefix(name, ".") {
+			continue
+		}
 
-        // skip hidden path
-        if !serveAll && strings.HasPrefix(name, ".") {
-            continue
-        }
+		name = html.EscapeString(name)
+		if i.IsDir() {
+			name += "/"
+		}
+		fileUrl := url.URL{Path: name}
+		fileItem := dirListFiles{Name: name, Url: fileUrl.String(), Size: i.Size(), ModTime: i.ModTime()}
+		if i.IsDir() {
+			dirfiles = append(dirfiles, fileItem)
+			continue
+		}
+		files = append(files, fileItem)
+	}
+	sort.Sort(dirListFilesArray(dirfiles))
+	sort.Sort(dirListFilesArray(files))
+	files = append(dirfiles, files...)
 
-        fileUrl:= url.URL{Path: name}
+	// write parent dir
+	if c.cleanPath != "/" {
+		parent := c.parent()
+		// unescape parent before get it's modification time
+		var parentUnescape string
+		parentUnescape, err = url.QueryUnescape(parent)
+		if err != nil {
+			return
+		}
+		var dirinfo os.FileInfo
+		dirinfo, err = os.Stat(filepath.Join(this.config.Root, parentUnescape))
+		if err != nil {
+			return
+		}
+		files = append([]dirListFiles{{Name: "[..]", Url: parent, ModTime: dirinfo.ModTime()}}, files...)
+	}
 
-        // write parent dir
-        if n == 0 && c.cleanPath != "/" {
-            parent := c.parent()
+	data := dirList{Title: title, Files: files}
 
-            // unescape parent before get it's modification time
-            var parentUnescape string
-            parentUnescape, err = url.QueryUnescape(parent)
-            if err != nil {
-                return
-            }
+	buf := bufferPool.Get()
+	defer bufferPool.Put(buf)
 
-            var info os.FileInfo
-            info, err = os.Stat(filepath.Join(this.config.Root, parentUnescape))
-            if err != nil {
-                return
-            }
-
-            files = append(files, dirListFiles{Name:"[..]", Url:parent, ModTime:info.ModTime()})
-        }
-
-        files = append(files, dirListFiles{Name:name, Url:fileUrl.String(), Size:i.Size(), ModTime:i.ModTime()})
-    }
-
-    data := dirList{ Title: title, Files: files}
-
-    buf := bufferPool.Get()
-    defer bufferPool.Put(buf)
-
-    tplDirList.Execute(buf, data)
-    size, _ = buf.WriteTo(w)
-    return
+	tplDirList.Execute(buf, data)
+	size, _ = buf.WriteTo(w)
+	return
 }
-
-
