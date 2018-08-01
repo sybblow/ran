@@ -103,7 +103,7 @@ func (this *RanServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// serve the static file using backend server
-	const upstreamBaseURL = "http://192.168.127.1/media"
+	const upstreamBaseURL = "http://" + upstreamBaseHost + upstreamBaseDir
 	upstreamPath := upstreamBaseURL + r.URL.EscapedPath()
 	http.Redirect(w, r, upstreamPath, http.StatusMovedPermanently)
 	return

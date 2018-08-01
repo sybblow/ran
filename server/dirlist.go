@@ -12,6 +12,11 @@ import "path/filepath"
 import "strings"
 import "sort"
 
+const (
+	upstreamBaseHost = "192.168.127.1"
+	upstreamBaseDir  = "/media"
+)
+
 type dirListFiles struct {
 	Name    string
 	Url     string
@@ -157,15 +162,16 @@ func (this *RanServer) listDir(w http.ResponseWriter, serveAll bool, c *context)
 		}
 
 		name = html.EscapeString(name)
+		fileItem := dirListFiles{Name: name, Size: i.Size(), ModTime: i.ModTime()}
 		if i.IsDir() {
-			name += "/"
-		}
-		fileUrl := url.URL{Path: name}
-		fileItem := dirListFiles{Name: name, Url: fileUrl.String(), Size: i.Size(), ModTime: i.ModTime()}
-		if i.IsDir() {
+			fileItem.Name += "/"
+			fileUrl := url.URL{Path: fileItem.Name}
+			fileItem.Url = fileUrl.String()
 			dirfiles = append(dirfiles, fileItem)
 			continue
 		}
+		fileUrl := url.URL{Scheme: "http", Host: upstreamBaseHost, Path: path.Join(upstreamBaseDir, c.cleanPath, fileItem.Name)}
+		fileItem.Url = fileUrl.String()
 		files = append(files, fileItem)
 	}
 	sort.Sort(dirListFilesArray(dirfiles))
