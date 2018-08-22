@@ -50,12 +50,22 @@ const dirListTpl = `<!DOCTYPE HTML>
 <link rel="stylesheet" href="http://apps.bdimg.com/libs/jquerymobile/1.4.5/jquery.mobile-1.4.5.min.css">
 <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
 <script src="http://apps.bdimg.com/libs/jquerymobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+<meta name="viewport" content="user-scalable=no,width=device-width">
+<style type="text/css">
+    .wrap {
+        white-space: normal !important;
+    }
+    h3 {
+        text-align: center;
+    }
+</style>
 </head>
 
 <body>
+<h3>{{.Title}}</h3>
 <ul data-role="listview">
 {{range $files := .Files}}
-    <li><a href="{{.Url}}">{{.Name}}</a></li>
+    <li><a href="{{.Url}}"><p class='wrap'>{{.Name}}</p></a></li>
 {{end}}
 </ul>
 
