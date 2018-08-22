@@ -8,8 +8,8 @@ import "os"
 import "fmt"
 import "strings"
 import "sync"
-import "github.com/m3ng9i/ran/global"
-import "github.com/m3ng9i/ran/server"
+import "github.com/sybblow/ran/global"
+import "github.com/sybblow/ran/server"
 
 func catchSignal() {
 	signal_channel := make(chan os.Signal, 1)

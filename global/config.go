@@ -6,7 +6,7 @@ import "flag"
 import "strings"
 import "path/filepath"
 import phelper "github.com/m3ng9i/go-utils/path"
-import "github.com/m3ng9i/ran/server"
+import "github.com/sybblow/ran/server"
 
 // version information
 var _version_ = "unknown"
@@ -395,9 +395,9 @@ func LoadConfig() {
 		}
 	}
 
-    if len(listenIP) > 0 {
-        Config.IP = listenIP
-    }
+	if len(listenIP) > 0 {
+		Config.IP = listenIP
+	}
 	if port > 0 {
 		Config.Port = port
 	}

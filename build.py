@@ -25,7 +25,7 @@ def lastCommitId():
 
 
 # Get package name in the current directory.
-# E.g. github.com/m3ng9i/ran
+# E.g. github.com/sybblow/ran
 def packageName():
     return runCmd("go list")
 

@@ -34,7 +34,7 @@ Ran is a simple web server for serving static files.
 Use the command below to install the dependencies mentioned above, and build the binary into $GOPATH/bin.
 
 ```bash
-go get -u github.com/m3ng9i/ran
+go get -u github.com/sybblow/ran
 ```
 
 For convenience, you can move the ran binary to a directory in the PATH environment variable.
@@ -45,7 +45,7 @@ You can also call `./build.py` command under the Ran source directory to write v
 
 You can also download the Ran binary without building it yourself.
 
-[Download Ran binary from the release page](https://github.com/m3ng9i/ran/releases).
+[Download Ran binary from the release page](https://github.com/sybblow/ran/releases).
 
 ## Run Ran
 
